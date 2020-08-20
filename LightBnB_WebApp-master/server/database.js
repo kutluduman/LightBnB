@@ -1,13 +1,7 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
-const { Pool } = require('pg');
+const db = require('./db');
 
-const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
-});
 
 
 /// Users
@@ -21,7 +15,7 @@ const getUserWithEmail = function(email) {
   const queryString = `
   SELECT * FROM users
   WHERE email = $1`;
-  return pool.query(queryString,[email])
+  return db.query(queryString,[email])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
 };
@@ -35,7 +29,7 @@ exports.getUserWithEmail = getUserWithEmail;
 const getUserWithId = function(id) {
   const queryString = `SELECT * FROM users
   WHERE id = $1`;
-  return pool.query(queryString,[id])
+  return db.query(queryString,[id])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
 }
@@ -52,7 +46,7 @@ const addUser =  function(user) {
   VALUES ($1,$2,$3)
   RETURNING *;
   `;
-  return pool.query(queryString,[user.name,user.email,user.password])
+  return db.query(queryString,[user.name,user.email,user.password])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
 }
@@ -80,7 +74,7 @@ const getAllReservations = function(guest_id, limit = 10) {
   ORDER BY start_date
   LIMIT $2
   `;
-  return pool.query(queryString,[guest_id,limit])
+  return db.query(queryString,[guest_id,limit])
   .then(res => res.rows)
   .catch(err => console.log(err.stack));
 };
@@ -149,7 +143,7 @@ const getAllProperties = function(options, limit = 10) {
 
   console.log(queryString, queryParams);
 
-  return pool.query(queryString, queryParams)
+  return db.query(queryString, queryParams)
   .then(res => res.rows);
   
 
@@ -170,7 +164,7 @@ const addProperty = function(property) {
   `;
   const values = [property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms, property.country, property.street, property.city, property.province, property.post_code];
 
-  return pool.query(queryString,values)
+  return db.query(queryString,values)
   .then(res => res.rows[0])
   .catch(err => console.log('query error:', err));
 }
