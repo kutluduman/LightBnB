@@ -18,13 +18,12 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
-  const query = `
+  const queryString = `
   SELECT * FROM users
   WHERE email = $1`;
-  return pool.query(query,[email])
+  return pool.query(queryString,[email])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
-
 };
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -34,9 +33,9 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  const query = `SELECT * FROM users
+  const queryString = `SELECT * FROM users
   WHERE id = $1`;
-  return pool.query(query,[id])
+  return pool.query(queryString,[id])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
 }
@@ -49,14 +48,13 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  const query = `INSERT INTO users (name,email,password)
+  const queryString = `INSERT INTO users (name,email,password)
   VALUES ($1,$2,$3)
   RETURNING *;
   `;
-  return pool.query(query,[user.name,user.email,user.password])
+  return pool.query(queryString,[user.name,user.email,user.password])
   .then(res => res.rows[0])
   .catch(err => console.log(err.stack));
-
 }
 exports.addUser = addUser;
 
@@ -68,12 +66,24 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  const query = `SELECT * FROM properties 
-  LIMIT $1`;
-  return pool.query(query,[limit])
+  const queryString = `
+  SELECT properties.*, res.*, avg(rating) FROM properties
+  INNER JOIN property_reviews AS reviews
+  ON reviews.property_id = properties.id
+  INNER JOIN reservations AS res
+  ON res.property_id = reviews.property_id
+  INNER JOIN users
+  ON reviews.guest_id = users.id
+  WHERE res.guest_id = $1
+  AND end_date < now()::date
+  GROUP BY properties.id, res.id
+  ORDER BY start_date
+  LIMIT $2
+  `;
+  return pool.query(queryString,[guest_id,limit])
   .then(res => res.rows)
   .catch(err => console.log(err.stack));
-}
+};
 
 exports.getAllReservations = getAllReservations;
 
@@ -86,11 +96,11 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function(options, limit = 10) {
-  const limitedProperties = {};
-  for (let i = 1; i <= limit; i++) {
-    limitedProperties[i] = properties[i];
-  }
-  return Promise.resolve(limitedProperties);
+  const queryString = `SELECT * FROM properties 
+  LIMIT $1`;
+  return pool.query(queryString,[limit])
+  .then(res => res.rows)
+  .catch(err => console.log(err.stack));
 }
 exports.getAllProperties = getAllProperties;
 
